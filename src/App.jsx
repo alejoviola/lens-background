@@ -44,43 +44,50 @@ export default function App() {
 
     // Rebuilding disposes the blade whose event is still dispatching, so the
     // swap waits for the current handler to unwind.
-    const rebuild = () => queueMicrotask(renderPalette)
+    const rebuild = () => queueMicrotask(renderStops)
     const usePalette = (next) => {
       palette = next.slice()
       ui.stops = palette.length
+      templateBinding.refresh()
+      stopsBinding.refresh()
       applyPalette()
       rebuild()
     }
 
-    const renderPalette = () => {
-      ;[...paletteFolder.children].forEach((child) => child.dispose())
-      paletteFolder.addBinding(ui, 'template', { options: TEMPLATE_OPTIONS })
-        .on('change', (e) => usePalette(PALETTE_TEMPLATES[e.value]))
-      const stopsBinding = paletteFolder.addBinding(ui, 'stops', {
-        min: MIN_STOPS, max: MAX_STOPS, step: 1
-      })
-      stopsBinding.on('change', (e) => {
-        const next = Math.round(e.value)
-        if (next === palette.length) return
-        while (palette.length > next) palette.pop()
-        while (palette.length < next) palette.push(randomPalette()[0])
-        applyPalette()
-        rebuild()
-      })
-      palette.forEach((hex, i) => {
+    // The template select and the stops slider outlive every rebuild: a slider
+    // disposed mid-click keeps handling the pointer through a detached track,
+    // whose zero width maps the release position to NaN.
+    const templateBinding = paletteFolder.addBinding(ui, 'template', { options: TEMPLATE_OPTIONS })
+    templateBinding.on('change', (e) => usePalette(PALETTE_TEMPLATES[e.value]))
+    const stopsBinding = paletteFolder.addBinding(ui, 'stops', {
+      min: MIN_STOPS, max: MAX_STOPS, step: 1
+    })
+    stopsBinding.on('change', (e) => {
+      const next = Math.round(e.value)
+      if (next === palette.length) return
+      while (palette.length > next) palette.pop()
+      while (palette.length < next) palette.push(randomPalette()[0])
+      applyPalette()
+      rebuild()
+    })
+
+    let stopBlades = []
+    const renderStops = () => {
+      stopBlades.forEach((blade) => blade.dispose())
+      stopBlades = palette.map((hex, i) => {
         const stop = { hex }
-        paletteFolder.addBinding(stop, 'hex', { label: `stop ${i + 1}` })
+        return paletteFolder.addBinding(stop, 'hex', { label: `stop ${i + 1}` })
           .on('change', (e) => { palette[i] = e.value; applyPalette() })
       })
-      paletteFolder.addButton({ title: 'random' }).on('click', () => {
+      stopBlades.push(paletteFolder.addButton({ title: 'random' }).on('click', () => {
         usePalette(randomPalette())
-      })
-      paletteFolder.addButton({ title: 'reset' }).on('click', () => {
+      }))
+      stopBlades.push(paletteFolder.addButton({ title: 'reset' }).on('click', () => {
         ui.template = 'Default'
         usePalette(DEFAULT_PALETTE)
-      })
+      }))
     }
-    renderPalette()
+    renderStops()
 
     // ---- one folder per section of the design's prop schema ---------------
     GEL_SECTIONS.forEach(({ title, params: entries }) => {
