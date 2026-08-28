@@ -67,6 +67,12 @@ or restore the ramp.
 
 `sound` toggles the audio layer.
 
+**Debug** shows a smoothed `fps` readout and two view toggles: `noise` renders
+the raw colour field before any refraction, `effects` renders the lens height and
+refraction map. Both are backed by the same `uDebug` uniform, so enabling one
+clears the other. The shader also has a third mode (`3`, the lens boundary) that
+is not currently surfaced in the panel.
+
 ## Notes
 
 Three things worth knowing if you touch this code:

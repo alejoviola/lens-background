@@ -3,7 +3,8 @@ import { Pane } from 'tweakpane'
 import { GelStage } from './gel/scene.js'
 import {
   GEL_SECTIONS, GEL_DEFAULTS, DEFAULT_PALETTE, PALETTE_TEMPLATES,
-  MIN_STOPS, MAX_STOPS, randomPalette
+  MIN_STOPS, MAX_STOPS, randomPalette,
+  DEBUG_NONE, DEBUG_NOISE, DEBUG_EFFECTS
 } from './gel/config.js'
 
 const TEMPLATE_OPTIONS = Object.fromEntries(
@@ -89,6 +90,33 @@ export default function App() {
           min, max, step, label: unit ? `${key} (${unit})` : key
         }).on('change', (e) => stage.setOptions({ [key]: e.value }))
       })
+    })
+
+    // ---- debug ------------------------------------------------------------
+    const debug = { noise: false, effects: false }
+    // read live by Tweakpane's monitor poll, so no extra timer is needed
+    Object.defineProperty(debug, 'fps', {
+      enumerable: true,
+      get: () => Math.round(stage.fps || 0),
+      set: () => {}
+    })
+
+    const debugFolder = pane.addFolder({ title: 'Debug', expanded: false })
+    debugFolder.addBinding(debug, 'fps', { readonly: true, format: (v) => v.toFixed(0) })
+
+    // one uDebug uniform backs both, so checking one clears the other
+    const applyDebug = () => stage.setOptions({
+      debug: debug.noise ? DEBUG_NOISE : debug.effects ? DEBUG_EFFECTS : DEBUG_NONE
+    })
+    const noiseBinding = debugFolder.addBinding(debug, 'noise')
+    const effectsBinding = debugFolder.addBinding(debug, 'effects')
+    noiseBinding.on('change', (e) => {
+      if (e.value && debug.effects) { debug.effects = false; effectsBinding.refresh() }
+      applyDebug()
+    })
+    effectsBinding.on('change', (e) => {
+      if (e.value && debug.noise) { debug.noise = false; noiseBinding.refresh() }
+      applyDebug()
     })
 
     return () => {

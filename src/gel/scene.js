@@ -20,6 +20,7 @@ export class GelStage {
     this.onAudioChange = onAudioChange
     this.time = 0
     this.frame = 0
+    this.fps = 0
     this.running = false
     this.visible = true
     this.start = 0
@@ -309,9 +310,17 @@ export class GelStage {
     if (!this.running) return
     this.raf = requestAnimationFrame(this.loop)
     const now = performance.now()
-    const dt = Math.min((now - this.last) / 1000, 0.05)
+    const elapsed = (now - this.last) / 1000
+    const dt = Math.min(elapsed, 0.05)
     this.last = now
     if (!this.start) this.start = now
+
+    // measured before dt is clamped, or a stalled frame would still read 20fps;
+    // smoothed so the readout is legible rather than jittering every frame
+    if (elapsed > 0) {
+      const instant = 1 / elapsed
+      this.fps = this.fps ? this.fps * 0.9 + instant * 0.1 : instant
+    }
 
     const o = this.opts
     const speed = this.reduced ? 0.12 : (o.speed || 1)
@@ -396,7 +405,7 @@ export class GelStage {
     f.uIOR.value = o.ior
     f.uVoidSoft.value = 0
     this.applyLayout()
-    f.uDebug.value = 0
+    f.uDebug.value = o.debug
 
     // spring physics: stiffness pulls towards the cursor, light damping lets
     // the slabs overshoot and settle back with a wobble

@@ -94,8 +94,14 @@ export const GEL_DEFAULTS = {
   noiseContrast: 2,
   noiseSpeed: 0.7,
   noiseBlur: 4,
-  hue: 0
+  hue: 0,
+  // 0 = normal, 1 = raw colour field, 2 = refraction map, 3 = lens boundary
+  debug: 0
 }
+
+export const DEBUG_NONE = 0
+export const DEBUG_NOISE = 1
+export const DEBUG_EFFECTS = 2
 
 export const DEFAULT_PALETTE = ['#ff2ca8', '#7b3dff', '#147dff', '#00d6c9', '#d6ff1f']
 
