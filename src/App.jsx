@@ -129,6 +129,15 @@ export default function App() {
     <>
       <div className="canvas-host" ref={canvasHostRef} />
       <div className="pane-host" ref={paneHostRef} />
+      <footer className="credits">
+        <span>Alejo Viola</span>
+        <span className="credits-sep">·</span>
+        <a href="https://github.com/alejoviola" target="_blank" rel="noopener noreferrer">
+          GitHub
+        </a>
+        <span className="credits-sep">·</span>
+        <a href="mailto:alejo@alejoviola.dev">alejo@alejoviola.dev</a>
+      </footer>
     </>
   )
 }
