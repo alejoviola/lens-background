@@ -98,6 +98,16 @@ Respects `prefers-reduced-motion` by slowing the animation and disabling the
 breathing sweep. Device pixel ratio is capped by viewport size so fill rate holds
 up on phones and 4K displays alike.
 
+## Credits
+
+Built by **Alejo Viola** — [github.com/alejoviola](https://github.com/alejoviola)
+· [alejo@alejoviola.dev](mailto:alejo@alejoviola.dev)
+
+The effect originates from the Claude Design project
+[Gel Capsules](https://claude.ai/design/p/a38f5c5c-96ec-4698-9d37-6d20daed6e0b?file=Gel+Capsules.dc.html);
+the shader passes and audio layer were ported from it, and the React, Tweakpane
+and palette-template layers were built around them.
+
 ## License
 
-MIT — see [LICENSE](LICENSE).
+MIT © Alejo Viola — see [LICENSE](LICENSE).

@@ -3,6 +3,11 @@
   "private": true,
   "version": "0.0.1",
   "type": "module",
+  "author": {
+    "name": "Alejo Viola",
+    "email": "alejo@alejoviola.dev",
+    "url": "https://github.com/alejoviola"
+  },
   "scripts": {
     "dev": "vite",
     "build": "vite build",
