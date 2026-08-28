@@ -1,106 +1,99 @@
 import { useEffect, useRef } from 'react'
-import * as THREE from 'three'
 import { Pane } from 'tweakpane'
+import { GelStage } from './gel/scene.js'
+import {
+  GEL_SECTIONS, GEL_DEFAULTS, DEFAULT_PALETTE, PALETTE_TEMPLATES,
+  MIN_STOPS, MAX_STOPS, randomPalette
+} from './gel/config.js'
 
-const vertexShader = /* glsl */ `
-  varying vec2 vUv;
-  void main() {
-    vUv = uv;
-    gl_Position = vec4(position, 1.0);
-  }
-`
-
-const fragmentShader = /* glsl */ `
-  precision highp float;
-
-  uniform float uTime;
-  uniform vec2 uResolution;
-  uniform float uSpeed;
-  uniform float uScale;
-  uniform vec3 uColorA;
-  uniform vec3 uColorB;
-
-  varying vec2 vUv;
-
-  void main() {
-    vec2 p = (vUv - 0.5) * vec2(uResolution.x / uResolution.y, 1.0) * uScale;
-    float t = uTime * uSpeed;
-    float field = sin(p.x + t) * cos(p.y - t * 0.7) * 0.5 + 0.5;
-    vec3 color = mix(uColorA, uColorB, field);
-    gl_FragColor = vec4(color, 1.0);
-  }
-`
-
-const params = {
-  speed: 0.4,
-  scale: 6.0,
-  colorA: '#0b1020',
-  colorB: '#4d7cff',
-}
+const TEMPLATE_OPTIONS = Object.fromEntries(
+  Object.keys(PALETTE_TEMPLATES).map((name) => [name, name])
+)
 
 export default function App() {
   const canvasHostRef = useRef(null)
   const paneHostRef = useRef(null)
 
   useEffect(() => {
-    const host = canvasHostRef.current
-    const renderer = new THREE.WebGLRenderer({ antialias: true })
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
-    renderer.setSize(host.clientWidth, host.clientHeight)
-    host.appendChild(renderer.domElement)
+    const params = { ...GEL_DEFAULTS }
+    let palette = DEFAULT_PALETTE.slice()
+    const ui = { sound: true, stops: palette.length, template: 'Default' }
 
-    const scene = new THREE.Scene()
-    const camera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1)
+    let soundBinding
+    let stage
+    stage = new GelStage(canvasHostRef.current, {
+      options: params,
+      palette,
+      // Reality can only drop the toggle once sound is no longer wanted — a
+      // start that the browser has not permitted yet must not read as "off".
+      onAudioChange: (on) => {
+        ui.sound = on || !!(stage && stage.audioWanted)
+        soundBinding && soundBinding.refresh()
+      }
+    })
 
-    const uniforms = {
-      uTime: { value: 0 },
-      uResolution: { value: new THREE.Vector2(host.clientWidth, host.clientHeight) },
-      uSpeed: { value: params.speed },
-      uScale: { value: params.scale },
-      uColorA: { value: new THREE.Color(params.colorA) },
-      uColorB: { value: new THREE.Color(params.colorB) },
+    const pane = new Pane({ container: paneHostRef.current, title: 'Gel Capsules' })
+
+    soundBinding = pane.addBinding(ui, 'sound')
+    soundBinding.on('change', (e) => stage.setAudio(e.value))
+
+    // ---- palette ----------------------------------------------------------
+    const paletteFolder = pane.addFolder({ title: 'Palette' })
+    const applyPalette = () => stage.setPalette(palette)
+
+    // Rebuilding disposes the blade whose event is still dispatching, so the
+    // swap waits for the current handler to unwind.
+    const rebuild = () => queueMicrotask(renderPalette)
+    const usePalette = (next) => {
+      palette = next.slice()
+      ui.stops = palette.length
+      applyPalette()
+      rebuild()
     }
 
-    const mesh = new THREE.Mesh(
-      new THREE.PlaneGeometry(2, 2),
-      new THREE.ShaderMaterial({ vertexShader, fragmentShader, uniforms }),
-    )
-    scene.add(mesh)
-
-    const pane = new Pane({ container: paneHostRef.current, title: 'lens-background' })
-    pane.addBinding(params, 'speed', { min: 0, max: 2, step: 0.01 })
-      .on('change', (e) => { uniforms.uSpeed.value = e.value })
-    pane.addBinding(params, 'scale', { min: 1, max: 20, step: 0.1 })
-      .on('change', (e) => { uniforms.uScale.value = e.value })
-    pane.addBinding(params, 'colorA')
-      .on('change', (e) => { uniforms.uColorA.value.set(e.value) })
-    pane.addBinding(params, 'colorB')
-      .on('change', (e) => { uniforms.uColorB.value.set(e.value) })
-
-    const resize = () => {
-      const { clientWidth: w, clientHeight: h } = host
-      renderer.setSize(w, h)
-      uniforms.uResolution.value.set(w, h)
+    const renderPalette = () => {
+      ;[...paletteFolder.children].forEach((child) => child.dispose())
+      paletteFolder.addBinding(ui, 'template', { options: TEMPLATE_OPTIONS })
+        .on('change', (e) => usePalette(PALETTE_TEMPLATES[e.value]))
+      const stopsBinding = paletteFolder.addBinding(ui, 'stops', {
+        min: MIN_STOPS, max: MAX_STOPS, step: 1
+      })
+      stopsBinding.on('change', (e) => {
+        const next = Math.round(e.value)
+        if (next === palette.length) return
+        while (palette.length > next) palette.pop()
+        while (palette.length < next) palette.push(randomPalette()[0])
+        applyPalette()
+        rebuild()
+      })
+      palette.forEach((hex, i) => {
+        const stop = { hex }
+        paletteFolder.addBinding(stop, 'hex', { label: `stop ${i + 1}` })
+          .on('change', (e) => { palette[i] = e.value; applyPalette() })
+      })
+      paletteFolder.addButton({ title: 'random' }).on('click', () => {
+        usePalette(randomPalette())
+      })
+      paletteFolder.addButton({ title: 'reset' }).on('click', () => {
+        ui.template = 'Default'
+        usePalette(DEFAULT_PALETTE)
+      })
     }
-    window.addEventListener('resize', resize)
+    renderPalette()
 
-    const clock = new THREE.Clock()
-    let frame = 0
-    const tick = () => {
-      uniforms.uTime.value = clock.getElapsedTime()
-      renderer.render(scene, camera)
-      frame = requestAnimationFrame(tick)
-    }
-    tick()
+    // ---- one folder per section of the design's prop schema ---------------
+    GEL_SECTIONS.forEach(({ title, params: entries }) => {
+      const folder = pane.addFolder({ title, expanded: false })
+      entries.forEach(({ key, min, max, step, unit }) => {
+        folder.addBinding(params, key, {
+          min, max, step, label: unit ? `${key} (${unit})` : key
+        }).on('change', (e) => stage.setOptions({ [key]: e.value }))
+      })
+    })
 
     return () => {
-      cancelAnimationFrame(frame)
-      window.removeEventListener('resize', resize)
       pane.dispose()
-      mesh.geometry.dispose()
-      mesh.material.dispose()
-      renderer.dispose()
-      host.removeChild(renderer.domElement)
+      stage.dispose()
     }
   }, [])
 
