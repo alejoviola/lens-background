@@ -5,8 +5,14 @@ colour field through a rounded-rectangle glass lens. The capsules tilt toward th
 cursor, a slow "breathing" sweep travels across the grid, and every parameter is
 exposed through a Tweakpane panel.
 
-Ported to React from the Claude Design project
-[Gel Capsules](https://claude.ai/design/p/a38f5c5c-96ec-4698-9d37-6d20daed6e0b?file=Gel+Capsules.dc.html).
+<img width="1504" height="777" alt="banner" src="https://github.com/user-attachments/assets/a55566e3-19ab-4889-be23-d27884ca65d7" />
+
+**Live demo:** https://lens-background.alejoviola.dev/
+
+## Inspiration
+
+The goal was to build an interactive experience in the style of the German artist
+Martin Naumann.
 
 ## Stack
 
@@ -102,11 +108,6 @@ up on phones and 4K displays alike.
 
 Built by **Alejo Viola** — [github.com/alejoviola](https://github.com/alejoviola)
 · [alejo@alejoviola.dev](mailto:alejo@alejoviola.dev)
-
-The effect originates from the Claude Design project
-[Gel Capsules](https://claude.ai/design/p/a38f5c5c-96ec-4698-9d37-6d20daed6e0b?file=Gel+Capsules.dc.html);
-the shader passes and audio layer were ported from it, and the React, Tweakpane
-and palette-template layers were built around them.
 
 ## License
 
